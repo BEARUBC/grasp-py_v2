@@ -24,5 +24,5 @@ while active:
     cv2.namedWindow("image", cv2.WINDOW_AUTOSIZE)
     cv2.imshow("image", np.hstack([image, output]))
     k = cv2.waitKey(1)
-    if k == 27:
+    if k != -1:
         break
