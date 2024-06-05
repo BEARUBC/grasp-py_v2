@@ -4,6 +4,12 @@ from ultralytics import YOLO
 import cv2
 import colorspacious as cs
 
+"""
+Test version of Raihan's code
+Keep this version in the test branch
+
+"""
+
 # Parameters
 
 # Bounds for Blue
@@ -288,98 +294,96 @@ def assignGripType(objectClass, objectCoordinate, frame):
 
 
 # Main
+def display_image(frame, is_video):
 
-while True:
+    while True:
 
-    ret, frame = video.read()
-    if not ret:
-        break
-    # frame = cv2.resize(ret, 640, 480)
+        results = model(frame)[0]
+        (h, w) = frame.shape[:2]
 
-    results = model(frame)[0]
-    (h, w) = frame.shape[:2]
+        # Check if Detected Objects are Acceptable, if yes, pick the first one.
+        drawBox = False
+        no_of_detected_objects = len(results.boxes.data.tolist())
+        for result in results.boxes.data.tolist():
+            x1, y1, x2, y2, score, class_id = result
 
-    # Check if Detected Objects are Acceptable, if yes, pick the first one.
-    drawBox = False
-    no_of_detected_objects = len(results.boxes.data.tolist())
-    for result in results.boxes.data.tolist():
-        x1, y1, x2, y2, score, class_id = result
+            if int(class_id) in objects:
+                drawBox = True
+        #
 
-        if int(class_id) in objects:
-            drawBox = True
-    #
+        rawResults = results.boxes.data.tolist()
+        coordinates = getDetectedObjectsCoordinate(rawResults)
 
-    rawResults = results.boxes.data.tolist()
-    coordinates = getDetectedObjectsCoordinate(rawResults)
-
-    # Main Algorithm
-    grip_type = ""
-    if rawResults:
-        detected_object_coordinates = getDetectedObjectsCoordinate(rawResults)
-        detected_object_scores = getDetectedObjectsConfidenceScores(rawResults)
-        detected_object_with_blue_coordinates = getListOfObjectsWithBlue(
-            detected_object_coordinates, frame
-        )
-        print(detected_object_with_blue_coordinates)
-        highest_confidence_blue_name = getHighestConfidenceObjectName(
-            detected_object_scores, rawResults
-        )
-        highest_confidence_blue_coordinate = getHighestConfidenceObjectCoordinate(
-            detected_object_scores, rawResults
-        )
-
-        grip_type = assignGripType(
-            highest_confidence_blue_name, highest_confidence_blue_coordinate, frame
-        )
-
-    # Display Grip Type
-    if grip_type is not None:
-        cv2.putText(
-            frame,
-            "GRIP TYPE: " + grip_type,
-            (0, 110),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.5,
-            (255, 255, 255),
-            3,
-        )
-    else:
-        cv2.putText(
-            frame,
-            "GRIP TYPE: " + DEFAULT_GRIP,
-            (0, 110),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.5,
-            (255, 255, 255),
-            3,
-        )
-
-    # Draw Bounding Box
-    for result in results.boxes.data.tolist():
-        x1, y1, x2, y2, score, class_id = result
-
-        if score > threshold:
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 4)
-            cv2.putText(
-                frame,
-                results.names[int(class_id)].upper(),
-                (int(x1), int(y1 - 10)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1.3,
-                (0, 255, 0),
-                3,
-                cv2.LINE_AA,
+        # Main Algorithm
+        grip_type = ""
+        if rawResults:
+            detected_object_coordinates = getDetectedObjectsCoordinate(rawResults)
+            detected_object_scores = getDetectedObjectsConfidenceScores(rawResults)
+            detected_object_with_blue_coordinates = getListOfObjectsWithBlue(
+                detected_object_coordinates, frame
+            )
+            print(detected_object_with_blue_coordinates)
+            highest_confidence_blue_name = getHighestConfidenceObjectName(
+                detected_object_scores, rawResults
+            )
+            highest_confidence_blue_coordinate = getHighestConfidenceObjectCoordinate(
+                detected_object_scores, rawResults
             )
 
-    # Window Manager
-    key = cv2.waitKey(1) & 0xFF
-    cv2.namedWindow("GRASP", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("GRASP", cv2.WINDOW_NORMAL, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("GRASP", int(1920 / 2), int(1080 / 2))
+            grip_type = assignGripType(
+                highest_confidence_blue_name, highest_confidence_blue_coordinate, frame
+            )
 
-    cv2.imshow("GRASP Computer Vision", frame)
-    if key == 27:  # Escape
-        cv2.destroyAllWindows()
-        break
+        # Display Grip Type
+        if grip_type is not None:
+            cv2.putText(
+                frame,
+                "GRIP TYPE: " + grip_type,
+                (0, 110),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.5,
+                (255, 255, 255),
+                3,
+            )
+        else:
+            cv2.putText(
+                frame,
+                "GRIP TYPE: " + DEFAULT_GRIP,
+                (0, 110),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1.5,
+                (255, 255, 255),
+                3,
+            )
 
-video.release()
+        # Draw Bounding Box
+        for result in results.boxes.data.tolist():
+            x1, y1, x2, y2, score, class_id = result
+
+            if score > threshold:
+                cv2.rectangle(
+                    frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 4
+                )
+                cv2.putText(
+                    frame,
+                    results.names[int(class_id)].upper(),
+                    (int(x1), int(y1 - 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.3,
+                    (0, 255, 0),
+                    3,
+                    cv2.LINE_AA,
+                )
+
+        # Window Manager
+        key = cv2.waitKey(is_video) & 0xFF
+        cv2.namedWindow("GRASP", cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty("GRASP", cv2.WINDOW_NORMAL, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("GRASP", int(1920 / 2), int(1080 / 2))
+
+        cv2.imshow("GRASP", frame)
+        if key == 27:  # Escape
+            cv2.destroyAllWindows()
+            break
+
+    video.release()
